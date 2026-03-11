@@ -8,6 +8,7 @@ pnpm-debug.log
 .env
 .env.local
 .env.*.local
+token.txt
 
 # Build output
 dist/
