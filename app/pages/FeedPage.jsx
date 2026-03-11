@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { BrandMark } from '../components/layout/BrandMark';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../store/ToastContext';
 import { commentsService, postsService, reportsService, votesService } from '../services';
@@ -120,22 +121,46 @@ export default function FeedPage() {
 
   return (
     <div style={{ padding: '24px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ color: '#F1F5F9', margin: 0 }}>Feed</h1>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          style={{
-            padding: '8px 16px',
-            background: '#6C63FF',
-            border: 'none',
-            borderRadius: '4px',
-            color: 'white',
-            cursor: 'pointer',
-            fontWeight: 600,
-          }}
-        >
-          Create Post
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: 16 }}>
+        <div>
+          <h1 style={{ color: '#F1F5F9', margin: 0 }}>Feed</h1>
+          <p style={{ color: '#64748B', marginTop: 6, fontSize: 14 }}>Latest posts from your campus network.</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div
+            style={{
+              display: 'none',
+              alignItems: 'center',
+            }}
+            className="feed-brand-desktop"
+          >
+            <div
+              style={{
+                padding: '8px 12px',
+                borderRadius: 16,
+                background: 'rgba(26,29,39,0.92)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 12px 24px rgba(0,0,0,0.18)',
+              }}
+            >
+              <BrandMark compact />
+            </div>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            style={{
+              padding: '8px 16px',
+              background: '#6C63FF',
+              border: 'none',
+              borderRadius: '4px',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            Create Post
+          </button>
+        </div>
       </div>
       
       <CreatePostModal

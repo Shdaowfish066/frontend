@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { BrandMark } from '../components/layout/BrandMark';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../store/ToastContext';
 import { authService } from '../services';
@@ -42,8 +43,12 @@ export default function AuthPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: '#0F1117' }}>
-      <div style={{ width: '100%', maxWidth: 420, background: '#1A1D27', borderRadius: 20, padding: '36px 32px', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h1 style={{ marginBottom: 28, textAlign: 'center', color: '#F1F5F9' }}>Nebula</h1>
+      <div style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <BrandMark align="center" />
+        </div>
+
+        <div style={{ width: '100%', background: '#1A1D27', borderRadius: 20, padding: '36px 32px', border: '1px solid rgba(255,255,255,0.08)' }}>
 
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 28 }}>
           {['login', 'register'].map(tab => (
@@ -111,6 +116,7 @@ export default function AuthPage() {
             {loading ? 'Loading...' : (mode === 'login' ? 'Sign In' : 'Create Account')}
           </button>
         </form>
+        </div>
       </div>
     </div>
   );

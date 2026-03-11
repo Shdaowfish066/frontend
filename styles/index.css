@@ -61,3 +61,13 @@ a {
   text-decoration: none;
   color: inherit;
 }
+
+.feed-brand-desktop {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .feed-brand-desktop {
+    display: flex !important;
+  }
+}
