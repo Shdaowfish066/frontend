@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../store/ToastContext';
 import {
@@ -12,15 +12,19 @@ import {
 } from '../services';
 
 export default function MessagesPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { conversations, setConversations, currentUser } = useApp();
   const { showError, showSuccess } = useToast();
-  const [users, setUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [usersById, setUsersById] = useState({});
   const [activeUserId, setActiveUserId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showUserPicker, setShowUserPicker] = useState(false);
+  const [composeSearch, setComposeSearch] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const requestedUserId = searchParams.get('user');
 
   useEffect(() => {
@@ -35,14 +39,20 @@ export default function MessagesPage() {
         ]);
         const conversationList = groupConversations([...inbox, ...sent], currentUser?.id, map);
 
-        setUsers(usersResponse);
+        setAllUsers(usersResponse);
         setUsersById(map);
         setConversations(conversationList);
-        if (requestedUserId) {
-          setActiveUserId(Number(requestedUserId));
-        } else if (!activeUserId) {
-          setActiveUserId(conversationList[0]?.participantId || usersResponse[0]?.id || null);
-        }
+        setActiveUserId((previousUserId) => {
+          if (requestedUserId) {
+            return Number(requestedUserId);
+          }
+
+          if (previousUserId) {
+            return previousUserId;
+          }
+
+          return conversationList[0]?.participantId || null;
+        });
       } catch (error) {
         showError(error.message || 'Failed to load conversations');
       } finally {
@@ -53,7 +63,7 @@ export default function MessagesPage() {
     if (currentUser) {
       loadConversations();
     }
-  }, [activeUserId, currentUser, requestedUserId, setConversations, showError]);
+  }, [currentUser, requestedUserId, setConversations, showError]);
 
   useEffect(() => {
     const loadConversation = async () => {
@@ -165,32 +175,99 @@ export default function MessagesPage() {
     return <div style={{ padding: '24px', color: '#F1F5F9' }}>Please log in to view messages</div>;
   }
 
-  const activeUser = users.find(user => user.id === Number(activeUserId)) || null;
+  const activeUser = usersById[Number(activeUserId)] || null;
   const activeConversation = conversations.find(conversation => conversation.participantId === Number(activeUserId));
+  const filteredUsers = allUsers.filter((user) => (
+    user.username.toLowerCase().includes(composeSearch.trim().toLowerCase())
+  ));
+
+  const handleStartConversation = (userId) => {
+    setActiveUserId(userId);
+    setShowUserPicker(false);
+    setSelectedUserId(null);
+    setComposeSearch('');
+  };
 
   return (
     <div style={{ display: 'flex', height: '100%', gap: '16px', padding: '24px' }}>
       {/* Conversations list */}
-      <div style={{ width: '300px', background: '#1A1D27', borderRadius: '8px', overflow: 'auto', border: '1px solid rgba(255,255,255,0.1)' }}>
+      <div style={{ width: '320px', background: '#1A1D27', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div>
+            <div style={{ color: '#F1F5F9', fontWeight: 700 }}>Conversations</div>
+            <div style={{ color: '#64748B', fontSize: 12 }}>Only people you have already messaged appear here.</div>
+          </div>
+          <button
+            onClick={() => setShowUserPicker(previous => !previous)}
+            style={{ padding: '10px 12px', border: 'none', borderRadius: 8, background: '#6C63FF', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}
+          >
+            New Message
+          </button>
+        </div>
+
+        {showUserPicker && (
+          <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(15,17,23,0.65)' }}>
+            <input
+              type="text"
+              value={composeSearch}
+              onChange={event => setComposeSearch(event.target.value)}
+              placeholder="Search users..."
+              style={{ width: '100%', padding: '10px 12px', marginBottom: '12px', background: '#252D3D', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F1F5F9', fontSize: '14px' }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '260px', overflowY: 'auto' }}>
+              {filteredUsers.length === 0 ? (
+                <div style={{ color: '#64748B', fontSize: 13 }}>No users match your search.</div>
+              ) : (
+                filteredUsers.map(user => (
+                  <div key={user.id} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, background: 'rgba(255,255,255,0.03)' }}>
+                    <button
+                      onClick={() => setSelectedUserId(previous => previous === user.id ? null : user.id)}
+                      style={{ width: '100%', padding: '12px 14px', background: 'transparent', border: 'none', color: '#F1F5F9', textAlign: 'left', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      {user.username}
+                    </button>
+                    {selectedUserId === user.id && (
+                      <div style={{ display: 'flex', gap: '8px', padding: '0 14px 14px' }}>
+                        <button
+                          onClick={() => navigate(`/app/u/${encodeURIComponent(user.username)}`)}
+                          style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#F1F5F9', cursor: 'pointer' }}
+                        >
+                          Profile
+                        </button>
+                        <button
+                          onClick={() => handleStartConversation(user.id)}
+                          style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: 'none', background: '#22C55E', color: '#08110B', fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Message
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div style={{ padding: '16px', color: '#64748B' }}>Loading...</div>
-        ) : users.length === 0 ? (
-          <div style={{ padding: '16px', color: '#64748B' }}>No users available yet</div>
+        ) : conversations.length === 0 ? (
+          <div style={{ padding: '16px', color: '#64748B' }}>No conversations yet. Start one with New Message.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {users.map(user => {
-              const conversation = conversations.find(item => item.participantId === user.id);
+            {conversations.map(conversation => {
+              const participant = usersById[conversation.participantId];
               return (
               <button
-                key={user.id}
-                onClick={() => setActiveUserId(user.id)}
+                key={conversation.participantId}
+                onClick={() => setActiveUserId(conversation.participantId)}
                 style={{
-                  padding: '16px', border: 'none', background: Number(activeUserId) === user.id ? 'rgba(108,99,255,0.1)' : 'transparent',
-                  borderLeft: Number(activeUserId) === user.id ? '3px solid #6C63FF' : 'none',
+                  padding: '16px', border: 'none', background: Number(activeUserId) === conversation.participantId ? 'rgba(108,99,255,0.1)' : 'transparent',
+                  borderLeft: Number(activeUserId) === conversation.participantId ? '3px solid #6C63FF' : 'none',
                   cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.05)',
                 }}
               >
-                <div style={{ fontWeight: 600, color: '#F1F5F9' }}>{user.username}</div>
+                <div style={{ fontWeight: 600, color: '#F1F5F9' }}>{participant?.username ?? conversation.participantName}</div>
                 <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>{conversation?.lastMessage || 'No messages yet'}</div>
                 {conversation?.unreadCount > 0 && (
                   <div style={{ marginTop: 6, fontSize: 11, color: '#F59E0B' }}>{conversation.unreadCount} unread</div>
@@ -206,8 +283,14 @@ export default function MessagesPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#1A1D27', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
         {activeUser ? (
           <>
-            <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontWeight: 600, color: '#F1F5F9' }}>
-              {activeUser.username}
+            <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontWeight: 600, color: '#F1F5F9' }}>{activeUser.username}</div>
+              <button
+                onClick={() => navigate(`/app/u/${encodeURIComponent(activeUser.username)}`)}
+                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#F1F5F9', cursor: 'pointer' }}
+              >
+                View Profile
+              </button>
             </div>
             <div style={{ flex: 1, overflow: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {messages.map(msg => (
@@ -227,8 +310,10 @@ export default function MessagesPage() {
                   </div>
                 </div>
               ))}
-              {activeConversation && messages.length === 0 && (
-                <div style={{ color: '#64748B' }}>No messages in this conversation yet.</div>
+              {messages.length === 0 && (
+                <div style={{ color: '#64748B' }}>
+                  {activeConversation ? 'No messages in this conversation yet.' : `Start the conversation with ${activeUser.username}.`}
+                </div>
               )}
             </div>
             <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: '12px' }}>
@@ -256,7 +341,7 @@ export default function MessagesPage() {
           </>
         ) : (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
-            Select a conversation to start messaging
+            Select a conversation or start a new one
           </div>
         )}
       </div>
